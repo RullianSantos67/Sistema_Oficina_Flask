@@ -1,0 +1,84 @@
+/* ======== CARDS MOBILE - TELAS DE LISTAGEM ======== */
+/* Usado em todos os consultar.html via {% include '_mobile_cards.html' %} */
+
+.tbl-desktop  { display: block; }
+.cards-mobile { display: none;  }
+
+@media (max-width: 860px) {
+    .tbl-desktop  { display: none !important; }
+    .cards-mobile { display: block; margin-top: 14px; }
+
+    .m-card {
+        background: #fff;
+        border: 0.5px solid #e2e8f0;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+
+    .m-card-header {
+        background: #0f172a;
+        padding: 9px 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+    .m-card-id {
+        color: #38bdf8;
+        font-weight: 800;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .m-card-title {
+        color: #e2e8f0;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: right;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .m-card-body { padding: 10px 13px 6px; }
+    .m-row  { display: flex; gap: 10px; margin-bottom: 7px; }
+    .m-field {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 12px;
+        color: #475569;
+        min-width: 0;
+    }
+    .m-label {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #94a3b8;
+    }
+
+    .m-card-acoes {
+        display: flex;
+        gap: 7px;
+        padding: 9px 13px;
+        border-top: 0.5px solid #f1f5f9;
+        background: #f8fafc;
+    }
+    .m-card-acoes .btn-ed,
+    .m-card-acoes .btn-det,
+    .m-card-acoes .btn-ex {
+        flex: 1;
+        text-align: center;
+        padding: 7px 6px;
+        font-size: 11px;
+        border-radius: 7px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .m-card-acoes .btn-ex { flex: 0 0 40px; }
+}

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>👨‍🔧 Cadastrar Mecânico</h3>
+    <form method="POST" action="{{ url_for('mecanico_cadastrar') }}">
+        <div class="grupo-input">
+            <label>Nome Completo:</label>
+            <input type="text" name="nome" class="input-form" placeholder="Ex: Lucas Ferreira" required>
+        </div>
+        <div class="grupo-input">
+            <label>Especialidade:</label>
+            <input type="text" name="especialidade" class="input-form" placeholder="Ex: Motor e Câmbio" required>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn btn-blue" style="padding:10px 20px;width:auto;">Salvar</button>
+            <a href="{{ url_for('mecanico_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

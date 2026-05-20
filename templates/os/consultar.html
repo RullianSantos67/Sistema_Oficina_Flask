@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-lg">
+    <h3>🛠️ Ordens de Serviço</h3>
+    <a href="{{ url_for('os_cadastrar') }}" class="btn-add">📝 Abrir Nova O.S.</a>
+
+    <div class="tabela-wrapper tbl-desktop">
+        <table>
+            <thead>
+                <tr><th>Nº O.S.</th><th>Data</th><th>Veículo</th><th>Cliente</th><th>Total</th><th>Status</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for os, placa, cliente in ordens %}
+                <tr>
+                    <td><b>#{{ '%04d' % os.id_os }}</b></td>
+                    <td style="white-space:nowrap;">{{ os.data_entrada.strftime('%d/%m/%Y') if os.data_entrada else '-' }}</td>
+                    <td><b>{{ placa }}</b></td>
+                    <td>{{ cliente }}</td>
+                    <td style="white-space:nowrap;">{{ format_brl(os.valor_total) }}</td>
+                    <td>
+                        {% if os.status == 'Concluida' %}
+                            <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;">✅ Concluída</span>
+                        {% elif os.status == 'Em Andamento' %}
+                            <span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;">🔧 Em Andamento</span>
+                        {% else %}
+                            <span style="background:#e0f2fe;color:#075985;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;">📋 {{ os.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td><div class="acoes">
+                        <a href="{{ url_for('os_detalhes', id=os.id_os) }}" class="btn-det">🔍<span class="txt"> Ver</span></a>
+                        {% if os.status != 'Concluida' %}
+                        <a href="{{ url_for('os_editar', id=os.id_os) }}" class="btn-ed">✏️<span class="txt"> Editar</span></a>
+                        {% endif %}
+                        <a href="{{ url_for('os_excluir', id=os.id_os) }}" class="btn-ex" onclick="return confirm('Remover O.S. #{{ '%04d' % os.id_os }}?')">🗑️<span class="txt"> Excluir</span></a>
+                    </div></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:30px;">Nenhuma O.S. encontrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="cards-mobile">
+        {% for os, placa, cliente in ordens %}
+        <div class="m-card">
+            <div class="m-card-header">
+                <span class="m-card-id">#{{ '%04d' % os.id_os }}</span>
+                {% if os.status == 'Concluida' %}
+                    <span style="padding:2px 9px;border-radius:5px;font-size:9px;font-weight:800;background:#dcfce7;color:#166534;">✅ Concluída</span>
+                {% elif os.status == 'Em Andamento' %}
+                    <span style="padding:2px 9px;border-radius:5px;font-size:9px;font-weight:800;background:#fef3c7;color:#92400e;">🔧 Em Andamento</span>
+                {% else %}
+                    <span style="padding:2px 9px;border-radius:5px;font-size:9px;font-weight:800;background:#e0f2fe;color:#075985;">📋 {{ os.status }}</span>
+                {% endif %}
+            </div>
+            <div class="m-card-body">
+                <div class="m-row">
+                    <div class="m-field"><span class="m-label">Data</span><span>{{ os.data_entrada.strftime('%d/%m/%Y') if os.data_entrada else '-' }}</span></div>
+                    <div class="m-field"><span class="m-label">Veículo</span><span><b>{{ placa }}</b></span></div>
+                </div>
+                <div class="m-row">
+                    <div class="m-field"><span class="m-label">Cliente</span><span>{{ cliente }}</span></div>
+                    <div class="m-field"><span class="m-label">Total</span><span><b>{{ format_brl(os.valor_total) }}</b></span></div>
+                </div>
+            </div>
+            <div class="m-card-acoes">
+                <a href="{{ url_for('os_detalhes', id=os.id_os) }}" class="btn-det">🔍 Ver</a>
+                {% if os.status != 'Concluida' %}
+                <a href="{{ url_for('os_editar', id=os.id_os) }}" class="btn-ed">✏️ Editar</a>
+                {% endif %}
+                <a href="{{ url_for('os_excluir', id=os.id_os) }}" class="btn-ex" onclick="return confirm('Remover O.S. #{{ '%04d' % os.id_os }}?')">🗑️</a>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#94a3b8;padding:30px 0;">Nenhuma O.S. encontrada.</p>
+        {% endfor %}
+    </div>
+</div>
+{% include '_mobile_cards.html' %}
+{% endblock %}

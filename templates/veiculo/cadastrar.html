@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>🚗 Registrar Veículo</h3>
+    <form method="POST" action="{{ url_for('veiculo_cadastrar') }}">
+        <div class="grupo-input">
+            <label>Proprietário:</label>
+            <select name="id_cliente" class="input-form" required>
+                <option value="">-- Selecione o Dono --</option>
+                {% for cli in clientes %}
+                <option value="{{ cli.id_cliente }}">{{ cli.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="grupo-input">
+            <label>Placa:</label>
+            <input type="text" name="placa" class="input-form" placeholder="ABC-1234" required>
+        </div>
+        <div class="flex-row">
+            <div class="grupo-input flex-1">
+                <label>Marca:</label>
+                <input type="text" name="marca" class="input-form" placeholder="Ex: Fiat" required>
+            </div>
+            <div class="grupo-input flex-1">
+                <label>Modelo:</label>
+                <input type="text" name="modelo" class="input-form" placeholder="Ex: Uno" required>
+            </div>
+        </div>
+        <div class="grupo-input">
+            <label>Ano:</label>
+            <input type="number" name="ano" class="input-form" placeholder="2024" min="1980" max="2030" required>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn btn-blue" style="padding:10px 20px;width:auto;">Salvar Veículo</button>
+            <a href="{{ url_for('veiculo_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

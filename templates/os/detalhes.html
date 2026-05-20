@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao" style="max-width:1100px;">
+    <h3>🛠️ Detalhes da O.S. #{{ '%04d' % os.id_os }}</h3>
+
+    <div style="display:flex;align-items:center;gap:15px;margin-bottom:30px;flex-wrap:wrap;">
+        <span style="font-size:20px;font-weight:800;color:#16a34a;">Total: {{ format_brl(os.valor_total) }}</span>
+
+        {% if os.status != 'Concluida' %}
+        <a href="{{ url_for('os_editar', id=os.id_os) }}"
+           style="background-color:#f59e0b;color:white;padding:10px 20px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:600;display:inline-block;">
+           ✏️ Editar O.S.
+        </a>
+        <a href="{{ url_for('os_concluir', id=os.id_os) }}" class="btn-success"
+           onclick="return confirm('Deseja encerrar esta O.S.? Esta ação não pode ser desfeita.')">
+           ✔️ Concluir O.S.
+        </a>
+        {% else %}
+        <span style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;font-weight:bold;">🔒 O.S. CONCLUÍDA E BLOQUEADA</span>
+        {% endif %}
+
+        <a href="{{ url_for('os_consultar') }}" style="margin-left:auto;background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">← Voltar</a>
+    </div>
+
+    <div style="background:#f8fafc;border-radius:10px;padding:20px;margin-bottom:25px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;">
+        <div><span style="font-size:12px;color:#64748b;text-transform:uppercase;">Veículo</span><br><b>{{ os.veiculo.placa }} — {{ os.veiculo.modelo }}</b></div>
+        <div><span style="font-size:12px;color:#64748b;text-transform:uppercase;">Cliente</span><br><b>{{ os.veiculo.cliente.nome }}</b></div>
+        <div><span style="font-size:12px;color:#64748b;text-transform:uppercase;">Mecânico</span><br><b>{{ os.mecanico.nome }}</b></div>
+        <div><span style="font-size:12px;color:#64748b;text-transform:uppercase;">Data de Entrada</span><br><b>{{ os.data_entrada.strftime('%d/%m/%Y') if os.data_entrada else '-' }}</b></div>
+        <div><span style="font-size:12px;color:#64748b;text-transform:uppercase;">Previsão de Entrega</span><br><b>{{ os.data_previsao.strftime('%d/%m/%Y') if os.data_previsao else '-' }}</b></div>
+        <div><span style="font-size:12px;color:#64748b;text-transform:uppercase;">Status</span><br><b>{{ os.status }}</b></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;">
+        <div>
+            <h4 style="color:#334155;margin-bottom:15px;">📦 Peças Aplicadas</h4>
+            <table>
+                <thead><tr><th>Descrição</th><th>Qtd</th><th>Preço Unit.</th><th>Subtotal</th></tr></thead>
+                <tbody>
+                    {% if pecas_usadas %}
+                        {% for op in pecas_usadas %}
+                        <tr>
+                            <td>{{ op.peca.descricao }}</td>
+                            <td>{{ op.quantidade }}</td>
+                            <td>{{ format_brl(op.preco_unitario) }}</td>
+                            <td style="font-weight:600;">{{ format_brl(op.preco_unitario|float * op.quantidade) }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="4" style="text-align:center;color:#94a3b8;">Nenhuma peça lançada.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h4 style="color:#334155;margin-bottom:15px;">⚙️ Mão de Obra</h4>
+            <table>
+                <thead><tr><th>Serviço</th><th>Tempo (h)</th><th>Valor</th></tr></thead>
+                <tbody>
+                    {% if servicos_feitos %}
+                        {% for os_s in servicos_feitos %}
+                        <tr>
+                            <td>{{ os_s.servico.descricao }}</td>
+                            <td>{{ '%.2f'|format(os_s.horas_gastas|float) }}h</td>
+                            <td style="font-weight:600;">{{ format_brl(os_s.valor_cobrado) }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="3" style="text-align:center;color:#94a3b8;">Nenhum serviço lançado.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-lg">
+    <h3>🚗 Frota de Veículos</h3>
+    <a href="{{ url_for('veiculo_cadastrar') }}" class="btn-add">➕ Novo Veículo</a>
+
+    <div class="tabela-wrapper tbl-desktop">
+        <table>
+            <thead>
+                <tr><th>Placa</th><th>Marca / Modelo</th><th>Ano</th><th>Proprietário</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for v, dono in veiculos %}
+                <tr>
+                    <td><b>{{ v.placa }}</b></td>
+                    <td>{{ v.marca }} {{ v.modelo }}</td>
+                    <td>{{ v.ano }}</td>
+                    <td>{{ dono }}</td>
+                    <td><div class="acoes">
+                        <a href="{{ url_for('veiculo_editar', id=v.id_veiculo) }}" class="btn-ed">✏️<span class="txt"> Editar</span></a>
+                        <a href="{{ url_for('veiculo_excluir', id=v.id_veiculo) }}" class="btn-ex" onclick="return confirm('Excluir veículo {{ v.placa }}?')">🗑️<span class="txt"> Excluir</span></a>
+                    </div></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:30px;">Nenhum veículo cadastrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="cards-mobile">
+        {% for v, dono in veiculos %}
+        <div class="m-card">
+            <div class="m-card-header">
+                <span class="m-card-id" style="color:#38bdf8;font-size:15px;">{{ v.placa }}</span>
+                <span class="m-card-title">{{ v.ano }}</span>
+            </div>
+            <div class="m-card-body">
+                <div class="m-row">
+                    <div class="m-field"><span class="m-label">Marca / Modelo</span><span><b>{{ v.marca }} {{ v.modelo }}</b></span></div>
+                    <div class="m-field"><span class="m-label">Proprietário</span><span>{{ dono }}</span></div>
+                </div>
+            </div>
+            <div class="m-card-acoes">
+                <a href="{{ url_for('veiculo_editar', id=v.id_veiculo) }}" class="btn-ed">✏️ Editar</a>
+                <a href="{{ url_for('veiculo_excluir', id=v.id_veiculo) }}" class="btn-ex" onclick="return confirm('Excluir veículo {{ v.placa }}?')">🗑️</a>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#94a3b8;padding:30px 0;">Nenhum veículo cadastrado.</p>
+        {% endfor %}
+    </div>
+</div>
+{% include '_mobile_cards.html' %}
+{% endblock %}

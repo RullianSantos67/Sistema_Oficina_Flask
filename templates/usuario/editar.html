@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>✏️ Editar Usuário</h3>
+    <form method="POST" action="{{ url_for('usuario_editar', id=usuario.id_usuario) }}">
+        <div class="grupo-input">
+            <label>Nome:</label>
+            <input type="text" name="nome" class="input-form" value="{{ usuario.nome }}" required>
+        </div>
+        <div class="grupo-input">
+            <label>E-mail (login):</label>
+            <input type="email" name="email" class="input-form" value="{{ usuario.email }}" required>
+        </div>
+        <div class="grupo-input">
+            <label>Nova Senha (deixe em branco para manter a atual):</label>
+            <input type="password" name="senha" class="input-form" placeholder="••••••••" minlength="4">
+        </div>
+        <div class="grupo-input">
+            <label>Perfil de Acesso:</label>
+            <select name="perfil" class="input-form" required>
+                <option value="atendente" {% if usuario.perfil == 'atendente' %}selected{% endif %}>Atendente</option>
+                <option value="operador"  {% if usuario.perfil == 'operador'  %}selected{% endif %}>Operador</option>
+                <option value="admin"     {% if usuario.perfil == 'admin'     %}selected{% endif %}>Administrador</option>
+            </select>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn" style="background-color:#f59e0b;color:white;padding:10px 20px;width:auto;">Atualizar</button>
+            <a href="{{ url_for('usuario_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

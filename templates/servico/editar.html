@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>✏️ Editar Serviço</h3>
+    <form method="POST" action="{{ url_for('servico_editar', id=servico.id_servico) }}">
+        <div class="grupo-input">
+            <label>Descrição do Serviço:</label>
+            <input type="text" name="descricao" class="input-form" value="{{ servico.descricao }}" required>
+        </div>
+        <div class="grupo-input">
+            <label>Valor por Hora (R$):</label>
+            <input type="number" name="valor_hora" class="input-form" step="0.01" min="0" value="{{ servico.valor_hora }}" required>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn" style="background-color:#f59e0b;color:white;padding:10px 20px;width:auto;">Atualizar</button>
+            <a href="{{ url_for('servico_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>👤 Cadastrar Novo Cliente</h3>
+    <form method="POST" action="{{ url_for('cliente_cadastrar') }}" id="formCliente" novalidate>
+        <div class="grupo-input">
+            <label>Nome Completo:</label>
+            <input type="text" name="nome" id="nome" class="input-form" placeholder="Ex: Carlos Silva" required>
+            <span class="msg-erro" id="erro-nome"></span>
+        </div>
+        <div class="grupo-input">
+            <label>CPF:</label>
+            <input type="text" name="cpf" id="cpf" class="input-form" placeholder="000.000.000-00"
+                   oninput="mascaraCPF(this)" maxlength="14" required>
+            <span class="msg-erro" id="erro-cpf"></span>
+        </div>
+        <div class="grupo-input">
+            <label>Telefone / WhatsApp:</label>
+            <input type="text" name="telefone" id="telefone" class="input-form" placeholder="(00) 00000-0000"
+                   oninput="mascaraTelefone(this)" maxlength="15" required>
+            <span class="msg-erro" id="erro-telefone"></span>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn btn-blue" style="padding:10px 20px;width:auto;">Salvar Cliente</button>
+            <a href="{{ url_for('cliente_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.msg-erro { color:#dc2626; font-size:12px; font-weight:600; display:block; margin-top:4px; min-height:16px; }
+.input-form.invalido { border-color:#dc2626 !important; background:#fff5f5; }
+.input-form.valido   { border-color:#16a34a !important; background:#f0fdf4; }
+</style>
+
+<script>
+function mascaraCPF(i) {
+    let v = i.value.replace(/\D/g, "");
+    if (v.length >= 3) v = v.replace(/^(\d{3})(\d)/, "$1.$2");
+    if (v.length >= 6) v = v.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+    if (v.length >= 9) v = v.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
+    i.value = v;
+    validarCPF(i);
+}
+
+function mascaraTelefone(i) {
+    let v = i.value.replace(/\D/g, "");
+    if (v.length <= 10) {
+        v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+        v = v.replace(/(\d{4})(\d)/, "$1-$2");
+    } else {
+        v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+        v = v.replace(/(\d{5})(\d)/, "$1-$2");
+    }
+    i.value = v;
+    validarTelefone(i);
+}
+
+function validarCPF(input) {
+    const val = input.value.replace(/\D/g, "");
+    const erro = document.getElementById("erro-cpf");
+    if (val.length === 0) {
+        input.className = "input-form"; erro.textContent = ""; return false;
+    }
+    if (val.length < 11) {
+        input.classList.add("invalido"); input.classList.remove("valido");
+        erro.textContent = "CPF incompleto. Digite os 11 dígitos."; return false;
+    }
+    // Validação de CPF real
+    if (/^(\d)\1+$/.test(val)) {
+        input.classList.add("invalido"); input.classList.remove("valido");
+        erro.textContent = "CPF inválido."; return false;
+    }
+    let soma = 0, resto;
+    for (let i = 1; i <= 9; i++) soma += parseInt(val[i-1]) * (11 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(val[9])) {
+        input.classList.add("invalido"); input.classList.remove("valido");
+        erro.textContent = "CPF inválido."; return false;
+    }
+    soma = 0;
+    for (let i = 1; i <= 10; i++) soma += parseInt(val[i-1]) * (12 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(val[10])) {
+        input.classList.add("invalido"); input.classList.remove("valido");
+        erro.textContent = "CPF inválido."; return false;
+    }
+    input.classList.remove("invalido"); input.classList.add("valido");
+    erro.textContent = ""; return true;
+}
+
+function validarTelefone(input) {
+    const val = input.value.replace(/\D/g, "");
+    const erro = document.getElementById("erro-telefone");
+    if (val.length === 0) {
+        input.className = "input-form"; erro.textContent = ""; return false;
+    }
+    if (val.length < 10) {
+        input.classList.add("invalido"); input.classList.remove("valido");
+        erro.textContent = "Telefone incompleto."; return false;
+    }
+    input.classList.remove("invalido"); input.classList.add("valido");
+    erro.textContent = ""; return true;
+}
+
+function validarNome(input) {
+    const erro = document.getElementById("erro-nome");
+    if (input.value.trim().length < 3) {
+        input.classList.add("invalido"); input.classList.remove("valido");
+        erro.textContent = "Nome muito curto."; return false;
+    }
+    input.classList.remove("invalido"); input.classList.add("valido");
+    erro.textContent = ""; return true;
+}
+
+document.getElementById("nome").addEventListener("blur", function(){ validarNome(this); });
+document.getElementById("cpf").addEventListener("blur", function(){ validarCPF(this); });
+document.getElementById("telefone").addEventListener("blur", function(){ validarTelefone(this); });
+
+document.getElementById("formCliente").addEventListener("submit", function(e) {
+    const nome = document.getElementById("nome");
+    const cpf  = document.getElementById("cpf");
+    const tel  = document.getElementById("telefone");
+    const okNome = validarNome(nome);
+    const okCPF  = validarCPF(cpf);
+    const okTel  = validarTelefone(tel);
+    if (!okNome || !okCPF || !okTel) {
+        e.preventDefault();
+        if (!okNome) nome.focus();
+        else if (!okCPF) cpf.focus();
+        else tel.focus();
+    }
+});
+</script>
+{% endblock %}

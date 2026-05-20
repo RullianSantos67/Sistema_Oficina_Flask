@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>✏️ Editar O.S. #{{ '%04d' % os.id_os }}</h3>
+    <form method="POST" action="{{ url_for('os_editar', id=os.id_os) }}">
+        <div class="grupo-input">
+            <label>Veículo / Cliente:</label>
+            <select name="id_veiculo" class="input-form" required>
+                {% for v, dono in veiculos %}
+                <option value="{{ v.id_veiculo }}" {% if v.id_veiculo == os.id_veiculo %}selected{% endif %}>
+                    {{ v.placa }} - {{ v.modelo }} ({{ dono }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="grupo-input">
+            <label>Mecânico Responsável:</label>
+            <select name="id_mecanico" class="input-form" required>
+                {% for m in mecanicos %}
+                <option value="{{ m.id_mecanico }}" {% if m.id_mecanico == os.id_mecanico %}selected{% endif %}>{{ m.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="grupo-input">
+            <label>Status Atual:</label>
+            <select name="status" class="input-form" required>
+                {% for s in ['Em Andamento','Aguardando Orcamento','Aguardando Pecas','Concluida'] %}
+                <option value="{{ s }}" {% if s == os.status %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="grupo-input">
+            <label>Previsão de Entrega:</label>
+            <input type="date" name="data_previsao" class="input-form"
+                   value="{{ os.data_previsao.strftime('%Y-%m-%d') if os.data_previsao else '' }}" required>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn" style="background-color:#f59e0b;color:white;padding:10px 20px;width:auto;">Atualizar Dados</button>
+            <a href="{{ url_for('os_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Voltar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

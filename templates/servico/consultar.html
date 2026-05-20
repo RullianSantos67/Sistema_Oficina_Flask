@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-lg">
+    <h3>⚙️ Tabela de Mão de Obra</h3>
+    <a href="{{ url_for('servico_cadastrar') }}" class="btn-add">➕ Adicionar Serviço</a>
+
+    <div class="tabela-wrapper tbl-desktop">
+        <table>
+            <thead><tr><th>ID</th><th>Descrição</th><th>Valor / Hora</th><th>Ações</th></tr></thead>
+            <tbody>
+                {% for s in servicos %}
+                <tr>
+                    <td>#{{ s.id_servico }}</td>
+                    <td><b>{{ s.descricao }}</b></td>
+                    <td>{{ format_brl(s.valor_hora) }}</td>
+                    <td><div class="acoes">
+                        <a href="{{ url_for('servico_editar', id=s.id_servico) }}" class="btn-ed">✏️<span class="txt"> Editar</span></a>
+                        <a href="{{ url_for('servico_excluir', id=s.id_servico) }}" class="btn-ex" onclick="return confirm('Excluir serviço?')">🗑️<span class="txt"> Excluir</span></a>
+                    </div></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:30px;">Nenhum serviço cadastrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="cards-mobile">
+        {% for s in servicos %}
+        <div class="m-card">
+            <div class="m-card-header">
+                <span class="m-card-id">#{{ '%03d' % s.id_servico }}</span>
+                <span class="m-card-title">{{ s.descricao }}</span>
+            </div>
+            <div class="m-card-body">
+                <div class="m-row">
+                    <div class="m-field"><span class="m-label">Valor / Hora</span><span><b>{{ format_brl(s.valor_hora) }}</b></span></div>
+                </div>
+            </div>
+            <div class="m-card-acoes">
+                <a href="{{ url_for('servico_editar', id=s.id_servico) }}" class="btn-ed">✏️ Editar</a>
+                <a href="{{ url_for('servico_excluir', id=s.id_servico) }}" class="btn-ex" onclick="return confirm('Excluir serviço?')">🗑️</a>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#94a3b8;padding:30px 0;">Nenhum serviço cadastrado.</p>
+        {% endfor %}
+    </div>
+</div>
+{% include '_mobile_cards.html' %}
+{% endblock %}

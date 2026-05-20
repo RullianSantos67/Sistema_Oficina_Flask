@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cartao card-sm">
+    <h3>📝 Abrir Ordem de Serviço</h3>
+    <form method="POST" action="{{ url_for('os_cadastrar') }}">
+        <div class="grupo-input">
+            <label>Veículo:</label>
+            <select name="id_veiculo" class="input-form" required>
+                {% for v, dono in veiculos %}
+                <option value="{{ v.id_veiculo }}">{{ v.placa }} - {{ v.modelo }} ({{ dono }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex-row">
+            <div class="grupo-input flex-1">
+                <label>Mecânico Responsável:</label>
+                <select name="id_mecanico" class="input-form" required>
+                    {% for m in mecanicos %}
+                    <option value="{{ m.id_mecanico }}">{{ m.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grupo-input flex-1">
+                <label>Status Inicial:</label>
+                <select name="status" class="input-form" required>
+                    <option value="Aberta">Aberta</option>
+                    <option value="Em Andamento">Em Andamento</option>
+                </select>
+            </div>
+        </div>
+        <div class="grupo-input">
+            <label>Previsão de Entrega:</label>
+            <input type="date" name="data_previsao" class="input-form" required>
+        </div>
+        <div style="margin-top:25px;display:flex;gap:10px;align-items:center;">
+            <button type="submit" class="btn btn-blue" style="padding:10px 20px;width:auto;">Salvar O.S.</button>
+            <a href="{{ url_for('os_consultar') }}" style="background:#e2e8f0;color:#475569;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
