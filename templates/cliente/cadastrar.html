@@ -97,7 +97,7 @@ function validarTelefone(input) {
     if (val.length === 0) {
         input.className = "input-form"; erro.textContent = ""; return false;
     }
-    if (val.length < 10) {
+    if (val.length < 11) {
         input.classList.add("invalido"); input.classList.remove("valido");
         erro.textContent = "Telefone incompleto."; return false;
     }
