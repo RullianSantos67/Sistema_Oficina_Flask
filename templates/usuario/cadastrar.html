@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>➕ Novo Usuário do Sistema</h3>
     <form method="POST" action="{{ url_for('usuario_cadastrar') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Nome:</label>
             <input type="text" name="nome" class="input-form" placeholder="Nome completo" required>

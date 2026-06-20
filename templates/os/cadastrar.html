@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>📝 Abrir Ordem de Serviço</h3>
     <form method="POST" action="{{ url_for('os_cadastrar') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Veículo:</label>
             <select name="id_veiculo" class="input-form" required>

@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>👨‍🔧 Cadastrar Mecânico</h3>
     <form method="POST" action="{{ url_for('mecanico_cadastrar') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Nome Completo:</label>
             <input type="text" name="nome" class="input-form" placeholder="Ex: Lucas Ferreira" required>

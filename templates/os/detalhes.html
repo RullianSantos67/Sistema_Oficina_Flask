@@ -57,6 +57,7 @@
 
             {% if os.status != 'Concluida' %}
             <form method="POST" action="{{ url_for('os_adicionar_peca', id=os.id_os) }}" style="margin-top:15px;background:#f8fafc;padding:15px;border-radius:10px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="flex-row">
                     <div class="grupo-input flex-1" style="margin-bottom:0;">
                         <label style="font-size:12px;">Peça</label>
@@ -104,6 +105,7 @@
 
             {% if os.status != 'Concluida' %}
             <form method="POST" action="{{ url_for('os_adicionar_servico', id=os.id_os) }}" style="margin-top:15px;background:#f8fafc;padding:15px;border-radius:10px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="flex-row">
                     <div class="grupo-input flex-1" style="margin-bottom:0;">
                         <label style="font-size:12px;">Serviço</label>

@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>🚗 Registrar Veículo</h3>
     <form method="POST" action="{{ url_for('veiculo_cadastrar') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Proprietário:</label>
             <select name="id_cliente" class="input-form" required>

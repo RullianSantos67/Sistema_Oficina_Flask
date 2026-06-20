@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>✏️ Editar Usuário</h3>
     <form method="POST" action="{{ url_for('usuario_editar', id=usuario.id_usuario) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Nome:</label>
             <input type="text" name="nome" class="input-form" value="{{ usuario.nome }}" required>

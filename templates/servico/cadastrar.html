@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>⚙️ Adicionar Serviço à Tabela</h3>
     <form method="POST" action="{{ url_for('servico_cadastrar') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Descrição do Serviço:</label>
             <input type="text" name="descricao" class="input-form" placeholder="Ex: Troca de Óleo e Filtro" required>

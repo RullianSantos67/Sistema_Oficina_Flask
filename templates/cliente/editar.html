@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>✏️ Editar Cliente</h3>
     <form method="POST" action="{{ url_for('cliente_editar', id=cliente.id_cliente) }}" id="formCliente" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Nome Completo:</label>
             <input type="text" name="nome" id="nome" class="input-form" value="{{ cliente.nome }}" required>

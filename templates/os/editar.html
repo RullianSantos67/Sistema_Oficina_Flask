@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>✏️ Editar O.S. #{{ '%04d' % os.id_os }}</h3>
     <form method="POST" action="{{ url_for('os_editar', id=os.id_os) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Veículo / Cliente:</label>
             <select name="id_veiculo" class="input-form" required>

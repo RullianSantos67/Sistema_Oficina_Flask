@@ -3,6 +3,7 @@
 <div class="cartao card-sm">
     <h3>👤 Cadastrar Novo Cliente</h3>
     <form method="POST" action="{{ url_for('cliente_cadastrar') }}" id="formCliente" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grupo-input">
             <label>Nome Completo:</label>
             <input type="text" name="nome" id="nome" class="input-form" placeholder="Ex: Carlos Silva" required>

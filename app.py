@@ -1,5 +1,7 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+import secrets
+import hmac
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
@@ -203,6 +205,34 @@ app.jinja_env.globals['format_brl'] = format_brl
 
 
 # =============================================================
+#  PROTECAO CSRF
+# =============================================================
+# Token unico por sessao, exigido em todo POST. Sem Flask-WTF para nao
+# adicionar dependencia extra: usa apenas 'secrets' (biblioteca padrao).
+
+def get_csrf_token():
+    if '_csrf_token' not in session:
+        session['_csrf_token'] = secrets.token_hex(32)
+    return session['_csrf_token']
+
+app.jinja_env.globals['csrf_token'] = get_csrf_token
+
+@app.before_request
+def csrf_protect():
+    if request.method == 'POST':
+        token_sessao = session.get('_csrf_token')
+        token_form   = request.form.get('csrf_token')
+        if not token_sessao or not token_form or not hmac.compare_digest(token_sessao, token_form):
+            abort(400, description='Token CSRF invalido ou ausente. Recarregue a pagina e tente novamente.')
+
+
+@app.errorhandler(400)
+def erro_400(e):
+    flash('Sessão expirada ou formulário inválido. Tente novamente.', 'erro')
+    return redirect(request.referrer or url_for('index')), 400
+
+
+# =============================================================
 #  AUTH
 # =============================================================
 
@@ -384,9 +414,18 @@ def mecanico_consultar():
 @login_required
 def mecanico_cadastrar():
     if request.method == 'POST':
-        db.session.add(Mecanico(nome=request.form['nome'].strip(), especialidade=request.form['especialidade'].strip()))
-        db.session.commit(); flash('Mecanico cadastrado!', 'sucesso')
-        return redirect(url_for('mecanico_consultar'))
+        try:
+            nome = request.form['nome'].strip()
+            especialidade = request.form.get('especialidade', '').strip()
+            if not nome:
+                raise ValueError('Nome obrigatório.')
+            db.session.add(Mecanico(nome=nome, especialidade=especialidade))
+            db.session.commit()
+            flash('Mecanico cadastrado!', 'sucesso')
+            return redirect(url_for('mecanico_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: informe um nome válido.', 'erro')
     return render_template('mecanico/cadastrar.html', controller='mecanico')
 
 @app.route('/mecanico/editar/<int:id>', methods=['GET', 'POST'])
@@ -394,9 +433,18 @@ def mecanico_cadastrar():
 def mecanico_editar(id):
     mec = Mecanico.query.get_or_404(id)
     if request.method == 'POST':
-        mec.nome=request.form['nome'].strip(); mec.especialidade=request.form['especialidade'].strip()
-        db.session.commit(); flash('Mecanico atualizado!', 'sucesso')
-        return redirect(url_for('mecanico_consultar'))
+        try:
+            nome = request.form['nome'].strip()
+            especialidade = request.form.get('especialidade', '').strip()
+            if not nome:
+                raise ValueError('Nome obrigatório.')
+            mec.nome = nome; mec.especialidade = especialidade
+            db.session.commit()
+            flash('Mecanico atualizado!', 'sucesso')
+            return redirect(url_for('mecanico_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: informe um nome válido.', 'erro')
     return render_template('mecanico/editar.html', controller='mecanico', mecanico=mec)
 
 @app.route('/mecanico/excluir/<int:id>')
@@ -424,11 +472,21 @@ def peca_consultar():
 @login_required
 def peca_cadastrar():
     if request.method == 'POST':
-        db.session.add(Peca(descricao=request.form['descricao'].strip(),
-                            preco_base=float(request.form['preco_base']),
-                            quantidade_estoque=int(request.form['quantidade_estoque'])))
-        db.session.commit(); flash('Peca adicionada!', 'sucesso')
-        return redirect(url_for('peca_consultar'))
+        try:
+            descricao = request.form['descricao'].strip()
+            preco_base = float(request.form['preco_base'])
+            quantidade_estoque = int(request.form['quantidade_estoque'])
+            if not descricao:
+                raise ValueError('Descrição obrigatória.')
+            if preco_base < 0 or quantidade_estoque < 0:
+                raise ValueError('Valores não podem ser negativos.')
+            db.session.add(Peca(descricao=descricao, preco_base=preco_base, quantidade_estoque=quantidade_estoque))
+            db.session.commit()
+            flash('Peca adicionada!', 'sucesso')
+            return redirect(url_for('peca_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: verifique descrição, preço e quantidade informados.', 'erro')
     return render_template('peca/cadastrar.html', controller='peca')
 
 @app.route('/peca/editar/<int:id>', methods=['GET', 'POST'])
@@ -436,11 +494,23 @@ def peca_cadastrar():
 def peca_editar(id):
     peca = Peca.query.get_or_404(id)
     if request.method == 'POST':
-        peca.descricao=request.form['descricao'].strip()
-        peca.preco_base=float(request.form['preco_base'])
-        peca.quantidade_estoque=int(request.form['quantidade_estoque'])
-        db.session.commit(); flash('Peca atualizada!', 'sucesso')
-        return redirect(url_for('peca_consultar'))
+        try:
+            descricao = request.form['descricao'].strip()
+            preco_base = float(request.form['preco_base'])
+            quantidade_estoque = int(request.form['quantidade_estoque'])
+            if not descricao:
+                raise ValueError('Descrição obrigatória.')
+            if preco_base < 0 or quantidade_estoque < 0:
+                raise ValueError('Valores não podem ser negativos.')
+            peca.descricao = descricao
+            peca.preco_base = preco_base
+            peca.quantidade_estoque = quantidade_estoque
+            db.session.commit()
+            flash('Peca atualizada!', 'sucesso')
+            return redirect(url_for('peca_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: verifique descrição, preço e quantidade informados.', 'erro')
     return render_template('peca/editar.html', controller='peca', peca=peca)
 
 @app.route('/peca/excluir/<int:id>')
@@ -468,10 +538,20 @@ def servico_consultar():
 @login_required
 def servico_cadastrar():
     if request.method == 'POST':
-        db.session.add(Servico(descricao=request.form['descricao'].strip(),
-                               valor_hora=float(request.form['valor_hora'])))
-        db.session.commit(); flash('Servico adicionado!', 'sucesso')
-        return redirect(url_for('servico_consultar'))
+        try:
+            descricao = request.form['descricao'].strip()
+            valor_hora = float(request.form['valor_hora'])
+            if not descricao:
+                raise ValueError('Descrição obrigatória.')
+            if valor_hora < 0:
+                raise ValueError('Valor não pode ser negativo.')
+            db.session.add(Servico(descricao=descricao, valor_hora=valor_hora))
+            db.session.commit()
+            flash('Servico adicionado!', 'sucesso')
+            return redirect(url_for('servico_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: verifique a descrição e o valor por hora informados.', 'erro')
     return render_template('servico/cadastrar.html', controller='servico')
 
 @app.route('/servico/editar/<int:id>', methods=['GET', 'POST'])
@@ -479,9 +559,21 @@ def servico_cadastrar():
 def servico_editar(id):
     srv = Servico.query.get_or_404(id)
     if request.method == 'POST':
-        srv.descricao=request.form['descricao'].strip(); srv.valor_hora=float(request.form['valor_hora'])
-        db.session.commit(); flash('Servico atualizado!', 'sucesso')
-        return redirect(url_for('servico_consultar'))
+        try:
+            descricao = request.form['descricao'].strip()
+            valor_hora = float(request.form['valor_hora'])
+            if not descricao:
+                raise ValueError('Descrição obrigatória.')
+            if valor_hora < 0:
+                raise ValueError('Valor não pode ser negativo.')
+            srv.descricao = descricao
+            srv.valor_hora = valor_hora
+            db.session.commit()
+            flash('Servico atualizado!', 'sucesso')
+            return redirect(url_for('servico_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: verifique a descrição e o valor por hora informados.', 'erro')
     return render_template('servico/editar.html', controller='servico', servico=srv)
 
 @app.route('/servico/excluir/<int:id>')
@@ -514,14 +606,25 @@ def os_cadastrar():
     veiculos  = (db.session.query(Veiculo, Cliente.nome.label('dono')).join(Cliente).order_by(Veiculo.placa).all())
     mecanicos = Mecanico.query.order_by(Mecanico.nome).all()
     if request.method == 'POST':
-        db.session.add(OrdemServico(
-            data_entrada=date.today(),
-            data_previsao=date.fromisoformat(request.form['data_previsao']),
-            status=request.form['status'], valor_total=0.00,
-            id_veiculo=int(request.form['id_veiculo']),
-            id_mecanico=int(request.form['id_mecanico'])))
-        db.session.commit(); flash('O.S. aberta com sucesso!', 'sucesso')
-        return redirect(url_for('os_consultar'))
+        try:
+            data_previsao = date.fromisoformat(request.form['data_previsao'])
+            id_veiculo  = int(request.form['id_veiculo'])
+            id_mecanico = int(request.form['id_mecanico'])
+            status = request.form.get('status', '').strip()
+            if not status:
+                raise ValueError('Status obrigatório.')
+            db.session.add(OrdemServico(
+                data_entrada=date.today(),
+                data_previsao=data_previsao,
+                status=status, valor_total=0.00,
+                id_veiculo=id_veiculo,
+                id_mecanico=id_mecanico))
+            db.session.commit()
+            flash('O.S. aberta com sucesso!', 'sucesso')
+            return redirect(url_for('os_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: verifique a data prevista, o veículo e o mecânico selecionados.', 'erro')
     return render_template('os/cadastrar.html', controller='os', veiculos=veiculos, mecanicos=mecanicos)
 
 @app.route('/os/detalhes/<int:id>')
@@ -654,10 +757,21 @@ def os_editar(id):
     veiculos  = (db.session.query(Veiculo, Cliente.nome.label('dono')).join(Cliente).order_by(Veiculo.placa).all())
     mecanicos = Mecanico.query.order_by(Mecanico.nome).all()
     if request.method == 'POST':
-        os_.id_veiculo=int(request.form['id_veiculo']); os_.id_mecanico=int(request.form['id_mecanico'])
-        os_.status=request.form['status']; os_.data_previsao=date.fromisoformat(request.form['data_previsao'])
-        db.session.commit(); flash('O.S. atualizada!', 'sucesso')
-        return redirect(url_for('os_consultar'))
+        try:
+            id_veiculo    = int(request.form['id_veiculo'])
+            id_mecanico   = int(request.form['id_mecanico'])
+            status        = request.form.get('status', '').strip()
+            data_previsao = date.fromisoformat(request.form['data_previsao'])
+            if not status:
+                raise ValueError('Status obrigatório.')
+            os_.id_veiculo = id_veiculo; os_.id_mecanico = id_mecanico
+            os_.status = status; os_.data_previsao = data_previsao
+            db.session.commit()
+            flash('O.S. atualizada!', 'sucesso')
+            return redirect(url_for('os_consultar'))
+        except (ValueError, KeyError):
+            db.session.rollback()
+            flash('Erro: verifique a data prevista, o veículo e o mecânico selecionados.', 'erro')
     return render_template('os/editar.html', controller='os', os=os_, veiculos=veiculos, mecanicos=mecanicos)
 
 @app.route('/os/concluir/<int:id>')
@@ -688,10 +802,14 @@ def relatorios():
     data_fim    = request.args.get('data_fim', '').strip()
 
     query = OrdemServico.query.filter(OrdemServico.status == 'Concluida')
-    if data_inicio:
-        query = query.filter(OrdemServico.data_entrada >= date.fromisoformat(data_inicio))
-    if data_fim:
-        query = query.filter(OrdemServico.data_entrada <= date.fromisoformat(data_fim))
+    try:
+        if data_inicio:
+            query = query.filter(OrdemServico.data_entrada >= date.fromisoformat(data_inicio))
+        if data_fim:
+            query = query.filter(OrdemServico.data_entrada <= date.fromisoformat(data_fim))
+    except ValueError:
+        flash('Datas informadas em formato inválido. Filtro ignorado.', 'erro')
+        data_inicio, data_fim = '', ''
     ordens_concluidas = query.all()
 
     faturamento_total  = sum(float(o.valor_total) for o in ordens_concluidas)

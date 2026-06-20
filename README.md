@@ -130,6 +130,53 @@ Importe o repositório direto no dashboard da Vercel (**Add New → Project**). 
 
 ---
 
+## 🔒 Segurança implementada
+
+- **SQL Injection**: 100% das consultas via SQLAlchemy ORM (nenhuma query com string concatenada manualmente).
+- **Senhas**: hash com Werkzeug (`generate_password_hash` / `check_password_hash`) em todo cadastro/edição/seed — nunca texto puro no banco.
+- **CSRF**: todo formulário POST exige um token único de sessão (`csrf_token`), validado em `@app.before_request` antes de qualquer escrita no banco. Requisições POST sem o token (ex.: forjadas por outro site) recebem erro 400.
+- **Controle de acesso**: rotas administrativas (`/usuario/*`) protegidas no backend com `@admin_required` — um operador não acessa mesmo digitando a URL direto, não é só um botão escondido no frontend.
+- **Validação server-side**: todas as rotas de cadastro/edição tratam erros de conversão de tipo (`ValueError`/`KeyError`) e fazem `rollback()` em caso de falha, evitando erro 500 cru para o usuário.
+
+---
+
+## ✅ Roteiro de testes manuais
+
+Sugestão de checklist para validar o sistema antes da entrega/apresentação:
+
+1. **Login**
+   - Logar com `admin@oficina.com` / `1234` → deve cair no painel.
+   - Logar com `joao@oficina.com` / `1234` (operador) → deve cair no painel, mas **sem** o menu "Admin".
+   - Logar com senha errada → mensagem de erro, sem revelar se o e-mail existe.
+
+2. **Permissões**
+   - Logado como operador, tentar acessar `http://127.0.0.1:5000/usuario` direto na URL → deve redirecionar com "Acesso restrito ao administrador."
+
+3. **CRUD básico** (repetir para Cliente, Veículo, Mecânico, Peça, Serviço)
+   - Cadastrar um novo registro válido → aparece na listagem.
+   - Tentar cadastrar com campo obrigatório vazio ou valor inválido (ex.: preço negativo) → mensagem de erro, sem quebrar a página.
+   - Editar um registro existente → dados atualizados na listagem.
+   - Excluir um registro sem vínculos → removido com sucesso.
+   - Tentar excluir um registro **com vínculo** (ex.: cliente com veículo, peça usada em O.S.) → deve bloquear com mensagem explicando o motivo.
+
+4. **Ordem de Serviço (fluxo completo)**
+   - Abrir uma O.S. nova para um veículo/mecânico.
+   - Lançar uma peça com quantidade maior que o estoque disponível → deve bloquear.
+   - Lançar uma peça e um serviço válidos → conferir que o estoque da peça diminuiu e o `valor_total` da O.S. foi recalculado.
+   - Remover a peça lançada → conferir que o estoque foi estornado.
+   - Marcar a O.S. como "Concluída" e tentar lançar nova peça/serviço → deve bloquear com "O.S. concluída não pode ser alterada."
+
+5. **Relatórios**
+   - Acessar `/relatorios` sem filtro → ver faturamento total e indicadores.
+   - Filtrar por período de datas válido → números recalculados.
+   - Tentar um filtro de data com formato inválido na URL → não deve quebrar a página.
+
+6. **Responsividade**
+   - Abrir qualquer tela de listagem com a janela larga → ver tabela.
+   - Reduzir a largura da janela (ou abrir no celular) abaixo de ~860px → tabela vira cards, menu vira hambúrguer.
+
+---
+
 ## 📁 Estrutura do projeto
 
 ```
