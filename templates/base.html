@@ -55,6 +55,9 @@
                 <a href="{{ url_for('peca_cadastrar') }}">Entrada de Peça</a>
             </div>
         </div>
+        <div class="menu-item {% if controller == 'relatorio' %}active{% endif %}">
+            <a href="{{ url_for('relatorios') }}" class="menu-link">📊 Relatórios</a>
+        </div>
         {% if session.get('usuario_nivel') == 'admin' %}
         <div class="menu-item {% if controller == 'usuario' %}active{% endif %}">
             <span class="menu-link">⚙️ Admin ▾</span>
@@ -103,6 +106,10 @@
         <div class="grupo-titulo">Estoque</div>
         <a href="{{ url_for('peca_consultar') }}">Lista de Peças</a>
         <a href="{{ url_for('peca_cadastrar') }}">Entrada de Peça</a>
+    </div>
+    <div class="grupo-nav">
+        <div class="grupo-titulo">Gerencial</div>
+        <a href="{{ url_for('relatorios') }}">📊 Relatórios</a>
     </div>
     {% if session.get('usuario_nivel') == 'admin' %}
     <div class="grupo-nav">

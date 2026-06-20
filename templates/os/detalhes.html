@@ -35,7 +35,7 @@
         <div>
             <h4 style="color:#334155;margin-bottom:15px;">📦 Peças Aplicadas</h4>
             <table>
-                <thead><tr><th>Descrição</th><th>Qtd</th><th>Preço Unit.</th><th>Subtotal</th></tr></thead>
+                <thead><tr><th>Descrição</th><th>Qtd</th><th>Preço Unit.</th><th>Subtotal</th>{% if os.status != 'Concluida' %}<th></th>{% endif %}</tr></thead>
                 <tbody>
                     {% if pecas_usadas %}
                         {% for op in pecas_usadas %}
@@ -44,19 +44,46 @@
                             <td>{{ op.quantidade }}</td>
                             <td>{{ format_brl(op.preco_unitario) }}</td>
                             <td style="font-weight:600;">{{ format_brl(op.preco_unitario|float * op.quantidade) }}</td>
+                            {% if os.status != 'Concluida' %}
+                            <td><a href="{{ url_for('os_remover_peca', id=os.id_os, id_peca=op.id_peca) }}" class="btn-ex" onclick="return confirm('Remover esta peça da O.S.? O estoque será devolvido.')">🗑️</a></td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr><td colspan="4" style="text-align:center;color:#94a3b8;">Nenhuma peça lançada.</td></tr>
+                        <tr><td colspan="5" style="text-align:center;color:#94a3b8;">Nenhuma peça lançada.</td></tr>
                     {% endif %}
                 </tbody>
             </table>
+
+            {% if os.status != 'Concluida' %}
+            <form method="POST" action="{{ url_for('os_adicionar_peca', id=os.id_os) }}" style="margin-top:15px;background:#f8fafc;padding:15px;border-radius:10px;">
+                <div class="flex-row">
+                    <div class="grupo-input flex-1" style="margin-bottom:0;">
+                        <label style="font-size:12px;">Peça</label>
+                        <select name="id_peca" class="input-form" required>
+                            {% for p in pecas_disponiveis %}
+                            <option value="{{ p.id_peca }}">{{ p.descricao }} ({{ p.quantidade_estoque }} un. — {{ format_brl(p.preco_base) }})</option>
+                            {% else %}
+                            <option disabled>Sem peças em estoque</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="grupo-input" style="margin-bottom:0;max-width:90px;">
+                        <label style="font-size:12px;">Qtd</label>
+                        <input type="number" name="quantidade" class="input-form" value="1" min="1" required>
+                    </div>
+                    <div style="align-self:flex-end;">
+                        <button type="submit" class="btn btn-blue" style="padding:11px 18px;width:auto;">➕ Lançar</button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
         </div>
 
         <div>
             <h4 style="color:#334155;margin-bottom:15px;">⚙️ Mão de Obra</h4>
             <table>
-                <thead><tr><th>Serviço</th><th>Tempo (h)</th><th>Valor</th></tr></thead>
+                <thead><tr><th>Serviço</th><th>Tempo (h)</th><th>Valor</th>{% if os.status != 'Concluida' %}<th></th>{% endif %}</tr></thead>
                 <tbody>
                     {% if servicos_feitos %}
                         {% for os_s in servicos_feitos %}
@@ -64,13 +91,38 @@
                             <td>{{ os_s.servico.descricao }}</td>
                             <td>{{ '%.2f'|format(os_s.horas_gastas|float) }}h</td>
                             <td style="font-weight:600;">{{ format_brl(os_s.valor_cobrado) }}</td>
+                            {% if os.status != 'Concluida' %}
+                            <td><a href="{{ url_for('os_remover_servico', id=os.id_os, id_servico=os_s.id_servico) }}" class="btn-ex" onclick="return confirm('Remover este serviço da O.S.?')">🗑️</a></td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr><td colspan="3" style="text-align:center;color:#94a3b8;">Nenhum serviço lançado.</td></tr>
+                        <tr><td colspan="4" style="text-align:center;color:#94a3b8;">Nenhum serviço lançado.</td></tr>
                     {% endif %}
                 </tbody>
             </table>
+
+            {% if os.status != 'Concluida' %}
+            <form method="POST" action="{{ url_for('os_adicionar_servico', id=os.id_os) }}" style="margin-top:15px;background:#f8fafc;padding:15px;border-radius:10px;">
+                <div class="flex-row">
+                    <div class="grupo-input flex-1" style="margin-bottom:0;">
+                        <label style="font-size:12px;">Serviço</label>
+                        <select name="id_servico" class="input-form" required>
+                            {% for s in servicos_disponiveis %}
+                            <option value="{{ s.id_servico }}">{{ s.descricao }} ({{ format_brl(s.valor_hora) }}/h)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="grupo-input" style="margin-bottom:0;max-width:100px;">
+                        <label style="font-size:12px;">Horas</label>
+                        <input type="number" name="horas_gastas" class="input-form" value="1" min="0.5" step="0.5" required>
+                    </div>
+                    <div style="align-self:flex-end;">
+                        <button type="submit" class="btn btn-blue" style="padding:11px 18px;width:auto;">➕ Lançar</button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
         </div>
     </div>
 </div>

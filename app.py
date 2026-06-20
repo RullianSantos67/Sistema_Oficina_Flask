@@ -1,11 +1,23 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import date
 from functools import wraps
 
-app = Flask(__name__)
-app.secret_key = 'automecânica-pro-secret-2024'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///oficina.db'
+# static_folder='public' -> compatível com Vercel (serve estático via CDN a
+# partir da pasta public/), e continua funcionando normalmente em localhost.
+app = Flask(__name__, static_folder='public', static_url_path='')
+
+# Em produção (Vercel), SECRET_KEY e DATABASE_URL vêm de variáveis de ambiente.
+# Em desenvolvimento local, cai nos valores padrão abaixo (SQLite + chave fixa).
+app.secret_key = os.environ.get('SECRET_KEY', 'automecanica-pro-dev-secret-trocar-em-producao')
+
+_db_url = os.environ.get('DATABASE_URL', 'sqlite:///oficina.db')
+if _db_url.startswith('postgres://'):          # Heroku/Neon às vezes retornam esse prefixo legado
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -98,8 +110,8 @@ def seed_database():
         return
 
     db.session.add_all([
-        Usuario(nome='Administrador', email='admin@oficina.com', senha='1234', perfil='admin'),
-        Usuario(nome='Joao Mecanico',  email='joao@oficina.com',  senha='1234', perfil='operador'),
+        Usuario(nome='Administrador', email='admin@oficina.com', senha=generate_password_hash('1234'), perfil='admin'),
+        Usuario(nome='Joao Mecanico',  email='joao@oficina.com',  senha=generate_password_hash('1234'), perfil='operador'),
     ])
 
     c1 = Cliente(nome='Carlos Pereira',  cpf='123.456.789-00', telefone='(35) 99999-1111')
@@ -206,8 +218,8 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         senha = request.form.get('senha', '').strip()
-        usuario = Usuario.query.filter_by(email=email, senha=senha).first()
-        if usuario:
+        usuario = Usuario.query.filter_by(email=email).first()
+        if usuario and check_password_hash(usuario.senha, senha):
             session['usuario_id']    = usuario.id_usuario
             session['usuario_nome']  = usuario.nome
             session['usuario_nivel'] = usuario.perfil
@@ -516,8 +528,124 @@ def os_cadastrar():
 @login_required
 def os_detalhes(id):
     os_ = OrdemServico.query.get_or_404(id)
+    pecas_disponiveis = Peca.query.filter(Peca.quantidade_estoque > 0).order_by(Peca.descricao).all()
+    servicos_disponiveis = Servico.query.order_by(Servico.descricao).all()
     return render_template('os/detalhes.html', controller='os', os=os_,
-                           pecas_usadas=os_.pecas_os, servicos_feitos=os_.servicos_os)
+                           pecas_usadas=os_.pecas_os, servicos_feitos=os_.servicos_os,
+                           pecas_disponiveis=pecas_disponiveis, servicos_disponiveis=servicos_disponiveis)
+
+
+def _recalcular_total_os(ordem):
+    """Soma peças + mão de obra lançadas na O.S. e atualiza o valor_total."""
+    total_pecas    = sum(float(op.preco_unitario) * op.quantidade for op in ordem.pecas_os)
+    total_servicos = sum(float(os_s.valor_cobrado) for os_s in ordem.servicos_os)
+    ordem.valor_total = round(total_pecas + total_servicos, 2)
+
+
+@app.route('/os/<int:id>/peca/adicionar', methods=['POST'])
+@login_required
+def os_adicionar_peca(id):
+    ordem = OrdemServico.query.get_or_404(id)
+    if ordem.status == 'Concluida':
+        flash('O.S. concluída não pode ser alterada.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+    try:
+        id_peca    = int(request.form['id_peca'])
+        quantidade = int(request.form['quantidade'])
+    except (ValueError, KeyError):
+        flash('Dados inválidos.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+
+    peca = Peca.query.get_or_404(id_peca)
+    if quantidade <= 0:
+        flash('Informe uma quantidade válida.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+    if quantidade > peca.quantidade_estoque:
+        flash(f'Estoque insuficiente para "{peca.descricao}". Disponível: {peca.quantidade_estoque} un.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+
+    item_existente = OsPeca.query.filter_by(id_os=id, id_peca=id_peca).first()
+    if item_existente:
+        item_existente.quantidade += quantidade
+    else:
+        db.session.add(OsPeca(id_os=id, id_peca=id_peca, quantidade=quantidade, preco_unitario=peca.preco_base))
+
+    peca.quantidade_estoque -= quantidade
+    db.session.flush()
+    _recalcular_total_os(ordem)
+    db.session.commit()
+    flash(f'{quantidade}x "{peca.descricao}" lançada(s) na O.S.! Estoque atualizado.', 'sucesso')
+    return redirect(url_for('os_detalhes', id=id))
+
+
+@app.route('/os/<int:id>/peca/remover/<int:id_peca>')
+@login_required
+def os_remover_peca(id, id_peca):
+    ordem = OrdemServico.query.get_or_404(id)
+    if ordem.status == 'Concluida':
+        flash('O.S. concluída não pode ser alterada.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+    item = OsPeca.query.filter_by(id_os=id, id_peca=id_peca).first_or_404()
+    peca = Peca.query.get(id_peca)
+    if peca:
+        peca.quantidade_estoque += item.quantidade   # estorna o estoque
+    db.session.delete(item)
+    db.session.flush()
+    _recalcular_total_os(ordem)
+    db.session.commit()
+    flash('Peça removida da O.S. e estoque estornado.', 'sucesso')
+    return redirect(url_for('os_detalhes', id=id))
+
+
+@app.route('/os/<int:id>/servico/adicionar', methods=['POST'])
+@login_required
+def os_adicionar_servico(id):
+    ordem = OrdemServico.query.get_or_404(id)
+    if ordem.status == 'Concluida':
+        flash('O.S. concluída não pode ser alterada.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+    try:
+        id_servico = int(request.form['id_servico'])
+        horas      = float(request.form['horas_gastas'])
+    except (ValueError, KeyError):
+        flash('Dados inválidos.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+
+    if horas <= 0:
+        flash('Informe um tempo válido.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+
+    servico = Servico.query.get_or_404(id_servico)
+    valor = round(horas * float(servico.valor_hora), 2)
+
+    item_existente = OsServico.query.filter_by(id_os=id, id_servico=id_servico).first()
+    if item_existente:
+        item_existente.horas_gastas  = float(item_existente.horas_gastas) + horas
+        item_existente.valor_cobrado = round(float(item_existente.valor_cobrado) + valor, 2)
+    else:
+        db.session.add(OsServico(id_os=id, id_servico=id_servico, horas_gastas=horas, valor_cobrado=valor))
+
+    db.session.flush()
+    _recalcular_total_os(ordem)
+    db.session.commit()
+    flash(f'Serviço "{servico.descricao}" lançado na O.S.!', 'sucesso')
+    return redirect(url_for('os_detalhes', id=id))
+
+
+@app.route('/os/<int:id>/servico/remover/<int:id_servico>')
+@login_required
+def os_remover_servico(id, id_servico):
+    ordem = OrdemServico.query.get_or_404(id)
+    if ordem.status == 'Concluida':
+        flash('O.S. concluída não pode ser alterada.', 'erro')
+        return redirect(url_for('os_detalhes', id=id))
+    item = OsServico.query.filter_by(id_os=id, id_servico=id_servico).first_or_404()
+    db.session.delete(item)
+    db.session.flush()
+    _recalcular_total_os(ordem)
+    db.session.commit()
+    flash('Serviço removido da O.S.', 'sucesso')
+    return redirect(url_for('os_detalhes', id=id))
 
 @app.route('/os/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -550,6 +678,53 @@ def os_excluir(id):
 
 
 # =============================================================
+#  RELATORIOS
+# =============================================================
+
+@app.route('/relatorios')
+@login_required
+def relatorios():
+    data_inicio = request.args.get('data_inicio', '').strip()
+    data_fim    = request.args.get('data_fim', '').strip()
+
+    query = OrdemServico.query.filter(OrdemServico.status == 'Concluida')
+    if data_inicio:
+        query = query.filter(OrdemServico.data_entrada >= date.fromisoformat(data_inicio))
+    if data_fim:
+        query = query.filter(OrdemServico.data_entrada <= date.fromisoformat(data_fim))
+    ordens_concluidas = query.all()
+
+    faturamento_total  = sum(float(o.valor_total) for o in ordens_concluidas)
+    qtd_os_concluidas  = len(ordens_concluidas)
+    ticket_medio       = (faturamento_total / qtd_os_concluidas) if qtd_os_concluidas else 0
+
+    por_mecanico = (db.session.query(Mecanico.nome,
+                                     db.func.count(OrdemServico.id_os),
+                                     db.func.coalesce(db.func.sum(OrdemServico.valor_total), 0))
+                    .join(OrdemServico, OrdemServico.id_mecanico == Mecanico.id_mecanico)
+                    .filter(OrdemServico.status == 'Concluida')
+                    .group_by(Mecanico.id_mecanico)
+                    .order_by(Mecanico.nome).all())
+
+    pecas_mais_usadas = (db.session.query(Peca.descricao, db.func.sum(OsPeca.quantidade).label('total'))
+                         .join(OsPeca, OsPeca.id_peca == Peca.id_peca)
+                         .group_by(Peca.id_peca)
+                         .order_by(db.desc('total')).limit(5).all())
+
+    status_contagem = (db.session.query(OrdemServico.status, db.func.count(OrdemServico.id_os))
+                       .group_by(OrdemServico.status).all())
+
+    pecas_estoque_baixo = Peca.query.filter(Peca.quantidade_estoque <= 3).order_by(Peca.quantidade_estoque).all()
+
+    return render_template('relatorio/relatorio.html', controller='relatorio',
+                           faturamento_total=faturamento_total, qtd_os_concluidas=qtd_os_concluidas,
+                           ticket_medio=ticket_medio, por_mecanico=por_mecanico,
+                           pecas_mais_usadas=pecas_mais_usadas, status_contagem=status_contagem,
+                           pecas_estoque_baixo=pecas_estoque_baixo,
+                           data_inicio=data_inicio, data_fim=data_fim)
+
+
+# =============================================================
 #  USUARIOS (ADMIN)
 # =============================================================
 
@@ -566,7 +741,7 @@ def usuario_cadastrar():
         try:
             db.session.add(Usuario(nome=request.form['nome'].strip(),
                                    email=request.form['email'].strip(),
-                                   senha=request.form['senha'],
+                                   senha=generate_password_hash(request.form['senha']),
                                    perfil=request.form['perfil']))
             db.session.commit(); flash('Usuario criado!', 'sucesso')
             return redirect(url_for('usuario_consultar'))
@@ -582,7 +757,7 @@ def usuario_editar(id):
         try:
             usr.nome=request.form['nome'].strip(); usr.email=request.form['email'].strip()
             usr.perfil=request.form['perfil']
-            if request.form.get('senha'): usr.senha=request.form['senha']
+            if request.form.get('senha'): usr.senha=generate_password_hash(request.form['senha'])
             db.session.commit(); flash('Usuario atualizado!', 'sucesso')
             return redirect(url_for('usuario_consultar'))
         except Exception:

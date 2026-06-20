@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-container">
+
+    <div class="cartao">
+        <h3>📊 Relatórios Gerenciais</h3>
+        <form method="GET" action="{{ url_for('relatorios') }}" style="display:flex;gap:15px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="grupo-input" style="margin-bottom:0;max-width:200px;">
+                <label>Data inicial:</label>
+                <input type="date" name="data_inicio" class="input-form" value="{{ data_inicio }}">
+            </div>
+            <div class="grupo-input" style="margin-bottom:0;max-width:200px;">
+                <label>Data final:</label>
+                <input type="date" name="data_fim" class="input-form" value="{{ data_fim }}">
+            </div>
+            <button type="submit" class="btn btn-blue" style="padding:11px 22px;width:auto;">🔍 Filtrar</button>
+            <a href="{{ url_for('relatorios') }}" style="background:#e2e8f0;color:#475569;padding:11px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Limpar</a>
+        </form>
+        <p style="margin-top:10px;font-size:12px;color:#94a3b8;">O filtro de período considera a data de entrada das O.S. concluídas.</p>
+    </div>
+
+    <div class="metric-grid">
+        <div class="metric-card border-blue">
+            <h4>Faturamento (O.S. Concluídas)</h4>
+            <span style="font-size:22px;">{{ format_brl(faturamento_total) }}</span>
+        </div>
+        <div class="metric-card border-purple">
+            <h4>O.S. Concluídas no Período</h4>
+            <span>{{ qtd_os_concluidas }}</span>
+        </div>
+        <div class="metric-card border-orange">
+            <h4>Ticket Médio</h4>
+            <span style="font-size:22px;">{{ format_brl(ticket_medio) }}</span>
+        </div>
+        <div class="metric-card border-red">
+            <h4>Peças c/ Estoque Crítico</h4>
+            <span>{{ pecas_estoque_baixo|length }}</span>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:25px;">
+
+        <div class="cartao">
+            <h3 style="font-size:17px;">👨‍🔧 Faturamento por Mecânico</h3>
+            <div class="tabela-wrapper">
+                <table>
+                    <thead><tr><th>Mecânico</th><th>O.S.</th><th>Faturamento</th></tr></thead>
+                    <tbody>
+                        {% for nome, qtd, total in por_mecanico %}
+                        <tr><td>{{ nome }}</td><td>{{ qtd }}</td><td><b>{{ format_brl(total) }}</b></td></tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px;">Sem O.S. concluídas no período.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="cartao">
+            <h3 style="font-size:17px;">🔩 Peças Mais Usadas (Top 5)</h3>
+            {% if pecas_mais_usadas %}
+                {% set max_qtd = pecas_mais_usadas[0][1] %}
+                {% for desc, total in pecas_mais_usadas %}
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;color:#334155;">
+                        <span>{{ desc }}</span><b>{{ total }} un.</b>
+                    </div>
+                    <div style="background:#e2e8f0;border-radius:6px;height:10px;overflow:hidden;">
+                        <div style="background:#38bdf8;height:100%;width:{{ (total / max_qtd * 100)|round(0,'floor')|int }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center;color:#94a3b8;padding:20px;">Nenhuma peça lançada em O.S. ainda.</p>
+            {% endif %}
+        </div>
+
+        <div class="cartao">
+            <h3 style="font-size:17px;">📋 Ordens de Serviço por Status</h3>
+            {% if status_contagem %}
+                {% set max_status = status_contagem|map(attribute=1)|max %}
+                {% for status, qtd in status_contagem %}
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;color:#334155;">
+                        <span>{{ status }}</span><b>{{ qtd }}</b>
+                    </div>
+                    <div style="background:#e2e8f0;border-radius:6px;height:10px;overflow:hidden;">
+                        <div style="background:#8b5cf6;height:100%;width:{{ (qtd / max_status * 100)|round(0,'floor')|int }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center;color:#94a3b8;padding:20px;">Nenhuma O.S. cadastrada.</p>
+            {% endif %}
+        </div>
+
+        <div class="cartao">
+            <h3 style="font-size:17px;">⚠️ Estoque Crítico (≤ 3 un.)</h3>
+            <div class="tabela-wrapper">
+                <table>
+                    <thead><tr><th>Peça</th><th>Estoque</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        {% for p in pecas_estoque_baixo %}
+                        <tr>
+                            <td>{{ p.descricao }}</td>
+                            <td style="color:#dc2626;font-weight:700;">{{ p.quantidade_estoque }} un.</td>
+                            <td><a href="{{ url_for('peca_editar', id=p.id_peca) }}" class="btn-ed">✏️<span class="txt"> Repor</span></a></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px;">Estoque saudável, nada crítico.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
