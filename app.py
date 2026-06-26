@@ -9,7 +9,7 @@ from functools import wraps
 
 # static_folder='public' -> compatível com Vercel (serve estático via CDN a
 # partir da pasta public/), e continua funcionando normalmente em localhost.
-app = Flask(__name__, static_folder='public', static_url_path='')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Em produção (Vercel), SECRET_KEY e DATABASE_URL vêm de variáveis de ambiente.
 # Em desenvolvimento local, cai nos valores padrão abaixo (SQLite + chave fixa).
@@ -216,6 +216,20 @@ def get_csrf_token():
     return session['_csrf_token']
 
 app.jinja_env.globals['csrf_token'] = get_csrf_token
+
+_db_initialized = False
+
+@app.before_request
+def ensure_db():
+    """Garante que o banco está inicializado antes de cada request (necessário na Vercel/serverless)."""
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            db.create_all()
+            seed_database()
+            _db_initialized = True
+        except Exception as e:
+            app.logger.error(f'Erro ao inicializar banco no request: {e}')
 
 @app.before_request
 def csrf_protect():
@@ -879,9 +893,18 @@ def usuario_excluir(id):
 #  INICIALIZACAO
 # =============================================================
 
+def init_db():
+    """Inicializa o banco de dados de forma segura (lazy, para Vercel/serverless)."""
+    try:
+        db.create_all()
+        seed_database()
+    except Exception as e:
+        app.logger.error(f'Erro ao inicializar banco: {e}')
+
+# Inicializa o banco quando o módulo é carregado.
+# Na Vercel (serverless), isso é executado no primeiro request de cada instância.
 with app.app_context():
-    db.create_all()
-    seed_database()
+    init_db()
 
 if __name__ == '__main__':
     app.run(debug=True)
