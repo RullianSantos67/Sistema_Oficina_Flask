@@ -606,25 +606,15 @@ def os_cadastrar():
     veiculos  = (db.session.query(Veiculo, Cliente.nome.label('dono')).join(Cliente).order_by(Veiculo.placa).all())
     mecanicos = Mecanico.query.order_by(Mecanico.nome).all()
     if request.method == 'POST':
-        try:
-            data_previsao = date.fromisoformat(request.form['data_previsao'])
-            id_veiculo  = int(request.form['id_veiculo'])
-            id_mecanico = int(request.form['id_mecanico'])
-            status = request.form.get('status', '').strip()
-            if not status:
-                raise ValueError('Status obrigatório.')
-            db.session.add(OrdemServico(
-                data_entrada=date.today(),
-                data_previsao=data_previsao,
-                status=status, valor_total=0.00,
-                id_veiculo=id_veiculo,
-                id_mecanico=id_mecanico))
-            db.session.commit()
-            flash('O.S. aberta com sucesso!', 'sucesso')
-            return redirect(url_for('os_consultar'))
-        except (ValueError, KeyError):
-            db.session.rollback()
-            flash('Erro: verifique a data prevista, o veículo e o mecânico selecionados.', 'erro')
+        _dp = request.form.get('data_previsao', '').strip()
+        db.session.add(OrdemServico(
+            data_entrada=date.today(),
+            data_previsao=date.fromisoformat(_dp) if _dp else None,
+            status=request.form['status'], valor_total=0.00,
+            id_veiculo=int(request.form['id_veiculo']),
+            id_mecanico=int(request.form['id_mecanico'])))
+        db.session.commit(); flash('O.S. aberta com sucesso!', 'sucesso')
+        return redirect(url_for('os_consultar'))
     return render_template('os/cadastrar.html', controller='os', veiculos=veiculos, mecanicos=mecanicos)
 
 @app.route('/os/detalhes/<int:id>')
@@ -757,21 +747,12 @@ def os_editar(id):
     veiculos  = (db.session.query(Veiculo, Cliente.nome.label('dono')).join(Cliente).order_by(Veiculo.placa).all())
     mecanicos = Mecanico.query.order_by(Mecanico.nome).all()
     if request.method == 'POST':
-        try:
-            id_veiculo    = int(request.form['id_veiculo'])
-            id_mecanico   = int(request.form['id_mecanico'])
-            status        = request.form.get('status', '').strip()
-            data_previsao = date.fromisoformat(request.form['data_previsao'])
-            if not status:
-                raise ValueError('Status obrigatório.')
-            os_.id_veiculo = id_veiculo; os_.id_mecanico = id_mecanico
-            os_.status = status; os_.data_previsao = data_previsao
-            db.session.commit()
-            flash('O.S. atualizada!', 'sucesso')
-            return redirect(url_for('os_consultar'))
-        except (ValueError, KeyError):
-            db.session.rollback()
-            flash('Erro: verifique a data prevista, o veículo e o mecânico selecionados.', 'erro')
+        os_.id_veiculo=int(request.form['id_veiculo']); os_.id_mecanico=int(request.form['id_mecanico'])
+        os_.status=request.form['status']
+        _dp = request.form.get('data_previsao', '').strip()
+        os_.data_previsao = date.fromisoformat(_dp) if _dp else None
+        db.session.commit(); flash('O.S. atualizada!', 'sucesso')
+        return redirect(url_for('os_consultar'))
     return render_template('os/editar.html', controller='os', os=os_, veiculos=veiculos, mecanicos=mecanicos)
 
 @app.route('/os/concluir/<int:id>')
