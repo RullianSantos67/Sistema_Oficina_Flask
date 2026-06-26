@@ -9,7 +9,7 @@ from functools import wraps
 
 # static_folder='public' -> compatível com Vercel (serve estático via CDN a
 # partir da pasta public/), e continua funcionando normalmente em localhost.
-app = Flask(__name__, static_folder='public', static_url_path='')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Em produção (Vercel), SECRET_KEY e DATABASE_URL vêm de variáveis de ambiente.
 # Em desenvolvimento local, cai nos valores padrão abaixo (SQLite + chave fixa).
