@@ -10,7 +10,7 @@ Sistema web completo de gestão para oficina mecânica em **Python + Flask**, co
 - **Login com senha protegida por hash** (Werkzeug `pbkdf2:sha256`) — nenhuma senha é armazenada em texto puro.
 - **Controle de permissões em 2 níveis**:
   - **Admin**: acesso total, incluindo o módulo de gerenciamento de usuários.
-  - **Operador**: acesso a todos os módulos operacionais (clientes, veículos, O.S., estoque, relatórios), sem acesso ao cadastro de usuários do sistema.
+  - **Operador & Atendente**: acesso a todos os módulos operacionais (clientes, veículos, O.S., estoque, relatórios), sem acesso ao cadastro de usuários do sistema.
 - **Fluxo completo de Ordem de Serviço**: lançamento de peças e mão de obra direto na tela de detalhes da O.S., com:
   - baixa automática no estoque ao lançar uma peça (e estorno automático se a peça for removida da O.S.);
   - validação de estoque insuficiente;
