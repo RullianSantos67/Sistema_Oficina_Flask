@@ -796,36 +796,47 @@ def relatorios():
     data_inicio = request.args.get('data_inicio', '').strip()
     data_fim    = request.args.get('data_fim', '').strip()
 
-    query = OrdemServico.query.filter(OrdemServico.status == 'Concluida')
+    d_inicio = None
+    d_fim    = None
     try:
         if data_inicio:
-            query = query.filter(OrdemServico.data_entrada >= date.fromisoformat(data_inicio))
+            d_inicio = date.fromisoformat(data_inicio)
         if data_fim:
-            query = query.filter(OrdemServico.data_entrada <= date.fromisoformat(data_fim))
+            d_fim = date.fromisoformat(data_fim)
     except ValueError:
         flash('Datas informadas em formato inválido. Filtro ignorado.', 'erro')
         data_inicio, data_fim = '', ''
-    ordens_concluidas = query.all()
+        d_inicio = d_fim = None
 
-    faturamento_total  = sum(float(o.valor_total) for o in ordens_concluidas)
-    qtd_os_concluidas  = len(ordens_concluidas)
-    ticket_medio       = (faturamento_total / qtd_os_concluidas) if qtd_os_concluidas else 0
+    def aplicar_filtro_data(q):
+        if d_inicio:
+            q = q.filter(OrdemServico.data_entrada >= d_inicio)
+        if d_fim:
+            q = q.filter(OrdemServico.data_entrada <= d_fim)
+        return q
 
-    por_mecanico = (db.session.query(Mecanico.nome,
-                                     db.func.count(OrdemServico.id_os),
-                                     db.func.coalesce(db.func.sum(OrdemServico.valor_total), 0))
-                    .join(OrdemServico, OrdemServico.id_mecanico == Mecanico.id_mecanico)
-                    .filter(OrdemServico.status == 'Concluida')
-                    .group_by(Mecanico.id_mecanico)
-                    .order_by(Mecanico.nome).all())
+    query_concluidas = aplicar_filtro_data(
+        OrdemServico.query.filter(OrdemServico.status == 'Concluida'))
+    ordens_concluidas = query_concluidas.all()
+    faturamento_total = sum(float(o.valor_total) for o in ordens_concluidas)
+    qtd_os_concluidas = len(ordens_concluidas)
+    ticket_medio      = (faturamento_total / qtd_os_concluidas) if qtd_os_concluidas else 0
 
-    pecas_mais_usadas = (db.session.query(Peca.descricao, db.func.sum(OsPeca.quantidade).label('total'))
-                         .join(OsPeca, OsPeca.id_peca == Peca.id_peca)
-                         .group_by(Peca.id_peca)
-                         .order_by(db.desc('total')).limit(5).all())
+    q_mec = (db.session.query(Mecanico.nome,
+                               db.func.count(OrdemServico.id_os),
+                               db.func.coalesce(db.func.sum(OrdemServico.valor_total), 0))
+              .join(OrdemServico, OrdemServico.id_mecanico == Mecanico.id_mecanico)
+              .filter(OrdemServico.status == 'Concluida'))
+    por_mecanico = aplicar_filtro_data(q_mec).group_by(Mecanico.id_mecanico).order_by(Mecanico.nome).all()
 
-    status_contagem = (db.session.query(OrdemServico.status, db.func.count(OrdemServico.id_os))
-                       .group_by(OrdemServico.status).all())
+    q_pecas = (db.session.query(Peca.descricao, db.func.sum(OsPeca.quantidade).label('total'))
+               .join(OsPeca, OsPeca.id_peca == Peca.id_peca)
+               .join(OrdemServico, OrdemServico.id_os == OsPeca.id_os))
+    pecas_mais_usadas = aplicar_filtro_data(q_pecas).group_by(Peca.id_peca).order_by(db.desc('total')).limit(5).all()
+
+    q_status = aplicar_filtro_data(
+        db.session.query(OrdemServico.status, db.func.count(OrdemServico.id_os)))
+    status_contagem = q_status.group_by(OrdemServico.status).all()
 
     pecas_estoque_baixo = Peca.query.filter(Peca.quantidade_estoque <= 3).order_by(Peca.quantidade_estoque).all()
 
